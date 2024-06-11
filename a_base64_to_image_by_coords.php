@@ -3,6 +3,7 @@
 function ReturnImageByCoords($charX, $charY, $tiles, $distance = 100, $centerDot = false, $compass = false)
 {
     $map = [];
+    //$debug = [];
     $tileWidth = $tiles[0]['x'] * 2;
     $tileHeight = $tiles[0]['y'] * 2;
 
@@ -19,39 +20,45 @@ function ReturnImageByCoords($charX, $charY, $tiles, $distance = 100, $centerDot
     $topRight = [$charX + $distance, $charY - $distance];
     $bottomLeft = [$charX - $distance, $charY + $distance];
     $bottomRight = [$charX + $distance, $charY + $distance];
-    
+
+    // We make sure the search area is within the map's area.
+    $topLeft[0] < 0 ? 0 : $topLeft[0]; $topLeft[1] < 0 ? 0 : $topLeft[1];    
+    $topRight[0] > $mapWidth ? $mapWidth : $topRight[0]; $topRight[1] < 0 ? 0 : $topRight[1];
+    $bottomLeft[0] < 0 ? 0 : $bottomLeft[0]; $bottomLeft[1] > $mapHeight ? $mapHeight : $bottomLeft[1];    
+    $bottomRight[0] > $mapWidth ? $mapWidth : $bottomRight[0]; $bottomRight[1] > $mapHeight ? $mapHeight : $bottomRight[1];
+
+    $searchLeft = $topLeft[0];
+    $searchRight = $bottomRight[0];
+    $searchTop = $topLeft[1];
+    $searchBottom = $bottomRight[1];
+        
     foreach ($tiles as $tile)
     {
-      $tileCenterX = $tile['x'];
-      $tileCenterY = $tile['y'];      
+        $tileCenterX = $tile['x'];
+        $tileCenterY = $tile['y'];
+      
+        $tileLeft = $tileCenterX - $tileWidth / 2;
+        $tileRight = $tileCenterX + $tileWidth / 2;
+        $tileTop = $tileCenterY - $tileHeight / 2;
+        $tileBottom = $tileCenterY + $tileHeight / 2;
 
-      $tileTopLeft = [$tileCenterX - ($tileWidth / 2), $tileCenterY - ($tileHeight / 2)];
-      $tileTopRight = [$tileCenterX + ($tileWidth / 2), $tileCenterY - ($tileHeight / 2)];
-      $tileBottomLeft = [$tileCenterX - ($tileWidth / 2), $tileCenterY + ($tileHeight / 2)];
-      $tileBottomRight = [$tileCenterX + ($tileWidth / 2), $tileCenterY + ($tileHeight / 2)];
-
-      if
-      (
-        (
-            // We check if the search area is inside any of the tiles.
-            ($topLeft[0] >= $tileTopLeft[0] && $topLeft[0] <= $tileTopRight[0] && $topLeft[1] >= $tileTopLeft[1] && $topLeft[1] <= $tileBottomLeft[1]) ||
-            ($topRight[0] <= $tileTopRight[0] && $topRight[0] >= $tileTopLeft[0] && $topRight[1] >= $tileTopLeft[1] && $topRight[1] <= $tileBottomLeft[1]) ||
-            ($bottomLeft[0] >= $tileTopLeft[0] && $bottomLeft[0] <= $tileTopRight[0] && $bottomLeft[1] >= $tileTopLeft[1] && $bottomLeft[1] <= $tileBottomLeft[1]) ||
-            ($bottomRight[0] <= $tileTopRight[0] && $bottomRight[0] >= $tileTopLeft[0] && $bottomRight[1] >= $tileTopLeft[1] && $bottomRight[1] <= $tileBottomLeft[1])
+        if(
+            // We check if the tile is in any point inside the search area.
+            ($searchLeft <= $tileRight && $searchRight >= $tileLeft) && // Overlap on X
+            ($searchTop <= $tileBottom && $searchBottom >= $tileTop)
         )
-      )
       {
         // If so, we proceed to push the tiles into the new map.
         if($yPos == 0)
         {
             $yPos = $tile['y'];
-            array_push($map, []);
+            array_push($map, []);            
         }
         elseif($tile['y'] > $yPos)
         {
             $yPos = $tile['y'];
             $y++;
-            array_push($map, []);
+            array_push($map, []);            
         }
 
         if($xPos == 0)
@@ -69,9 +76,9 @@ function ReturnImageByCoords($charX, $charY, $tiles, $distance = 100, $centerDot
             $x = 0;
         }
 
-        array_push($map[$y], $tile);
+        array_push($map[$y], $tile);        
       }
-    }
+    }    
 
     // We calculate the size of the new map and create the base image.
     $mapHeight = count($map) * $tileHeight;
@@ -93,18 +100,20 @@ function ReturnImageByCoords($charX, $charY, $tiles, $distance = 100, $centerDot
     // Now we cut the area we need to show.
     $mapCenterX = $charX - ($map[0][0]['x'] - ($tileWidth / 2));
     $mapCenterY = $charY - ($map[0][0]['y'] - ($tileHeight / 2));
-    $clipWidth = $distance * 2;
-    $clipHeight = $distance * 2;
-    
-    $clip = imagecreatetruecolor($distance * 2, $distance * 2);
-    imagecopyresampled($clip, $image, 0, 0, $mapCenterX - $distance, $mapCenterY - $distance, $clipWidth, $clipHeight, $distance * 2, $distance * 2);    
-    imagedestroy($image);
+    $clipWidth = (($distance * 2) <= $mapWidth ) ? $distance * 2 : $mapWidth;
+    $clipHeight = (($distance * 2) <= $mapHeight ) ? $distance * 2 : $mapHeight;
+    $src_x = ($mapCenterX - $distance) < 0 ? 0 : ($mapCenterX - $distance);
+    $src_y = ($mapCenterY - $distance) < 0 ? 0 : ($mapCenterY - $distance); 
     
     if($centerDot)
-    {        
-        $color_centrepoint = imagecolorallocate ($clip, 255, 165, 0);
-        imagefilledellipse ($clip, ($clipWidth / 2), ($clipHeight / 2), 6, 6, $color_centrepoint);
+    {
+        $color_centrepoint = imagecolorallocate ($image, 255, 165, 0);
+        imagefilledellipse ($image, $mapCenterX, $mapCenterY, 6, 6, $color_centrepoint);
     }
+
+    $clip = imagecreatetruecolor($clipWidth, $clipHeight);
+    imagecopyresampled($clip, $image, 0, 0, $src_x, $src_y, $clipWidth, $clipHeight, $clipWidth, $clipHeight);    
+    imagedestroy($image);
 
 
     if($compass)
@@ -124,7 +133,7 @@ function ReturnImageByCoords($charX, $charY, $tiles, $distance = 100, $centerDot
 
 $file = file_get_contents('./test.json');
 $tiles = json_decode($file, true);
-$distance = 100;
+$distance = 250;
 
 $image = ReturnImageByCoords(320, 460, $tiles, $distance, true, true);
 imagejpeg($image, 'a_coords_clip.jpeg');

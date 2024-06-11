@@ -3,7 +3,6 @@
 function ReturnImageByCoords($charX, $charY, $tiles, $distance = 100, $centerDot = false, $compass = false)
 {
     $map = [];
-    //$debug = [];
     $tileWidth = $tiles[0]['x'] * 2;
     $tileHeight = $tiles[0]['y'] * 2;
 

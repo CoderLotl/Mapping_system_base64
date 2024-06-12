@@ -1,12 +1,12 @@
 # DOCUMENTATION
 
-## Project: Map to Base64, Base64 to map, Minimap based on coords.
+### Project: Map to Base64, Base64 to map, Minimap based on coords.
 
-## Initial release: 06/09/24
+### Initial release: 06/09/24
 
 ---
 
-## Requirements:
+### Requirements:
 <ul>
     <li>PHP 5 >= 5.20
 </ul>
